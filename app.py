@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 def load_assets():
     """Loads the model, scaler, and SHAP background data only once."""
     model = tf.keras.models.load_model('MY_ANN_model.h5')
-    scaler = joblib.load('standard-scaler.save')
+    scaler = joblib.load('standard_scaler.save')
     # Load a small sample of your training data for SHAP
     # This must contain the same columns as your final preprocessed input
     background_data = pd.read_csv('background_data.csv')
