@@ -19,7 +19,7 @@ def load_assets():
         df = pd.read_csv('heart.csv') # Load original data for insights page
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure all necessary files (model.h5, scaler.joblib, background_data.csv, heart_disease.csv) are in the app's directory.")
-        st.stop() 
+        st.stop()
     return model, scaler, background_data, df
 
 model, scaler, background_data, df = load_assets()
@@ -335,4 +335,4 @@ def main():
         insights_page()
 
 if __name__ == "__main__":
-    main
+    main()
