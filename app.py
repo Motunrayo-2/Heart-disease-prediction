@@ -103,7 +103,7 @@ def intro_page():
     # Place your image file (e.g., 'image.png') in the same directory as this script.
     # st.image('image.png', use_column_width=True) # User's requested code
     # Using a placeholder for demonstration. Change 'image.png' to your file name.
-    st.image('https://images.unsplash.com/photo-1576091160550-2173f47c09d9?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', use_column_width=True)
+    st.image('image.jpeg', use_column_width=True)
 
 
     st.markdown("---")
