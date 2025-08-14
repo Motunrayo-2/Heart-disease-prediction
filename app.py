@@ -202,10 +202,21 @@ def prediction_page():
             st.session_state.page = 'input_form'
 
 def shap_explanation_page():
-        """Fourth page: Displays the SHAP force plot."""
+       """Fourth page: Displays the SHAP force plot with a new explanation."""
     st.title("How the Model Made its Prediction")
     st.markdown("---")
-    st.write("The chart below shows how each feature contributed to the final prediction. Red features push the prediction towards heart disease, while blue features push it away.")
+
+    # Simple explanation of the SHAP chart
+    st.markdown("""
+        **What does this chart mean?**
+
+        This chart shows how different features of the patient's health data "pushed" the model's prediction. The center line represents the model's average prediction (the "base value").
+
+        * **Red features** on the right side of the line are pushing the prediction **toward** a diagnosis of heart disease.
+        * **Blue features** on the left side of the line are pushing the prediction **away** from a diagnosis of heart disease.
+
+        The longer a bar is, the more that feature influenced the final prediction.
+    """)
 
     # Calculate SHAP values only once
     if st.session_state.shap_values is None:
@@ -213,6 +224,28 @@ def shap_explanation_page():
         shap_values = explainer.shap_values(st.session_state.input_aligned)
         st.session_state.shap_values = shap_values
     
+    # New code to explain feature contributions in text
+    st.markdown("### Feature Contributions")
+    
+    shap_df = pd.DataFrame({
+        'feature': st.session_state.input_aligned.columns,
+        'shap_value': st.session_state.shap_values[0].flatten()
+    })
+
+    # Calculate percentage contribution
+    total_abs_shap = shap_df['shap_value'].abs().sum()
+    shap_df['contribution'] = (shap_df['shap_value'].abs() / total_abs_shap) * 100
+
+    # Sort by absolute SHAP value to show most influential features first
+    shap_df = shap_df.sort_values(by='contribution', ascending=False)
+    
+    for _, row in shap_df.iterrows():
+        feature = row['feature']
+        contribution = row['contribution']
+        influence = "pushing the prediction **towards heart disease**" if row['shap_value'] > 0 else "pushing the prediction **away from heart disease**"
+        
+        st.write(f"- **{feature}**: Contributed **{contribution:.2f}%** to the prediction, {influence}.")
+
     # Display SHAP force plot
     fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
     shap.force_plot(
