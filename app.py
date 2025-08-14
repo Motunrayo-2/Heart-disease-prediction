@@ -100,7 +100,7 @@ def intro_page():
     st.write("Welcome! This application predicts the risk of heart disease based on a patient's medical metrics.")
     st.write("To get started, please click the button below to input the patient's information.")
     
-    st.image('https://placehold.co/800x400/D3D3D3/000000?text=Cardiovascular+Health', use_column_width=True)
+    st.image('image.jpeg', use_column_width=True)
 
     st.markdown("---")
     if st.button("Start Inputting Features"):
