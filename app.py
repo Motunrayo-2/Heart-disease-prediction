@@ -13,10 +13,10 @@ import time
 def load_assets():
     """Loads the model, scaler, and SHAP background data only once."""
     try:
-        model = tf.keras.models.load_model('MY_ANN_model.h5')
+        model = tf.keras.models.load_model('heart_disease_model.h5')
         scaler = joblib.load('scaler.joblib')
         background_data = pd.read_csv('background_data.csv')
-        df = pd.read_csv('heart.csv') # Load original data for insights page
+        df = pd.read_csv('heart_disease.csv') # Load original data for insights page
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure all necessary files (model.h5, scaler.joblib, background_data.csv, heart_disease.csv) are in the app's directory.")
         st.stop()
@@ -100,7 +100,10 @@ def intro_page():
     st.write("Welcome! This application predicts the risk of heart disease based on a patient's medical metrics.")
     st.write("To get started, please click the button below to input the patient's information.")
     
-    st.image('https://placehold.co/800x400/D3D3D3/000000?text=Cardiovascular+Health', use_column_width=True)
+    # Replace the placeholder image with a new one from a public URL
+    # You can change this URL to any publicly accessible image you like.
+    # Alternatively, you can use a local image file by placing it in the same directory and using its name.
+    st.image('https://images.unsplash.com/photo-1576091160550-2173f47c09d9?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', use_column_width=True)
 
     st.markdown("---")
     if st.button("Start Inputting Features"):
