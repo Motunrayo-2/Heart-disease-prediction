@@ -260,6 +260,7 @@ def shap_explanation_page():
         st.session_state.input_aligned.iloc[0], 
         matplotlib=True,
         show=False,
+        ax=ax,  # Pass the axes to the force plot
     )
     plt.tight_layout()
     st.pyplot(fig)
