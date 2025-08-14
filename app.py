@@ -209,63 +209,130 @@ def prediction_page():
             st.session_state.page = 'input_form'
 
 def shap_explanation_page():
-    """Fourth page: Displays the SHAP force plot with a new explanation."""
+ # ------------------------------------------------------------------
+# NEW  shap_explanation_page  (drop-in replacement)
+# ------------------------------------------------------------------
+def shap_explanation_page():
     st.title("How the Model Made its Prediction")
     st.markdown("---")
 
-    # Simple explanation of the SHAP chart
-    st.markdown("""
-        **What does this chart mean?**
+    # ------------------------------------------------------------------
+    # 1.  Choose a patient
+    # ------------------------------------------------------------------
+    # Build a label for every row in the original file
+    df['label'] = (
+        "ID " + df.index.astype(str) + " | " +
+        df['age'].astype(str) + " y, " +
+        df['sex'].map({1: "M", 0: "F"}) + ", " +
+        "target=" + df['target'].astype(str)
+    )
+    chosen_label = st.selectbox(
+        "Select a patient (or keep the current custom input)",
+        ["Current custom input"] + df['label'].tolist()
+    )
 
-        This chart shows how different features of the patient's health data "pushed" the model's prediction. The center line represents the model's average prediction (the "base value").
+    # ------------------------------------------------------------------
+    # 2.  Prepare the chosen row
+    # ------------------------------------------------------------------
+    if chosen_label == "Current custom input":
+        X_row = st.session_state.input_aligned
+        y_true = None   # we don't have a true label
+    else:
+        idx = df[df['label'] == chosen_label].index[0]
+        raw_row = df.iloc[[idx]].drop(columns=['target', 'label'])
 
-        * **Red features** on the right side of the line are pushing the prediction **toward** a diagnosis of heart disease.
-        * **Blue features** on the left side of the line are pushing the prediction **away** from a diagnosis of heart disease.
+        # same preprocessing you already do in prediction_page
+        raw_row['sex'] = raw_row['sex'].map({1: "Male", 0: "Female"})
+        raw_row['fbs'] = raw_row['fbs'].map({1: "Yes", 0: "No"})
+        raw_row['exang'] = raw_row['exang'].map({1: "Yes", 0: "No"})
 
-        The longer a bar is, the more that feature influenced the final prediction.
-    """)
+        cat_feats = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal']
+        raw_row = pd.get_dummies(raw_row, columns=cat_feats, drop_first=True)
 
-    # Calculate SHAP values only once
+        final_cols = background_data.columns.tolist()
+        raw_row = raw_row.reindex(columns=final_cols, fill_value=0)
+
+        num_feats = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak', 'ca']
+        raw_row[num_feats] = scaler.transform(raw_row[num_feats])
+
+        X_row = raw_row
+        y_true = int(df.loc[idx, 'target'])
+
+    # ------------------------------------------------------------------
+    # 3.  SHAP values for the chosen row
+    # ------------------------------------------------------------------
     if 'explainer' not in st.session_state or st.session_state.explainer is None:
         st.session_state.explainer = shap.KernelExplainer(model.predict, background_data)
-        st.session_state.shap_values = st.session_state.explainer.shap_values(st.session_state.input_aligned)[0].flatten()
 
-    # New code to explain feature contributions in text
+    shap_vals = st.session_state.explainer.shap_values(X_row)[0].flatten()
+
+    # ------------------------------------------------------------------
+    # 4.  Text contribution summary (already in your code)
+    # ------------------------------------------------------------------
     st.markdown("### Feature Contributions")
-    
     shap_df = pd.DataFrame({
-        'feature': st.session_state.input_aligned.columns,
-        'shap_value': st.session_state.shap_values
+        'feature': X_row.columns,
+        'shap_value': shap_vals,
+        'unit_value': X_row.iloc[0].values
     })
+    total = shap_df['shap_value'].abs().sum()
+    shap_df['contrib_pct'] = shap_df['shap_value'].abs() / total * 100
+    shap_df = shap_df.sort_values('contrib_pct', ascending=False)
 
-    # Calculate percentage contribution
-    total_abs_shap = shap_df['shap_value'].abs().sum()
-    shap_df['contribution'] = (shap_df['shap_value'].abs() / total_abs_shap) * 100
+    for _, r in shap_df.head(10).iterrows():
+        direction = "toward" if r.shap_value > 0 else "away from"
+        st.write(f"- **{r.feature}**: {r.contrib_pct:.1f}%  → pushes {direction} disease")
 
-    # Sort by absolute SHAP value to show most influential features first
-    shap_df = shap_df.sort_values(by='contribution', ascending=False)
-    
-    for _, row in shap_df.iterrows():
-        feature = row['feature']
-        contribution = row['contribution']
-        influence = "pushing the prediction **towards heart disease**" if row['shap_value'] > 0 else "pushing the prediction **away from heart disease**"
-        
-        st.write(f"- **{feature}**: Contributed **{contribution:.2f}%** to the prediction, {influence}.")
-
-    # Display SHAP force plot
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
-    shap.force_plot(
-        st.session_state.explainer.expected_value, 
-        st.session_state.shap_values,
-        st.session_state.input_aligned.iloc[0], 
-        matplotlib=True,
-        show=False,
-        ax=ax,  # Pass the axes to the force plot
-    )
+    # ------------------------------------------------------------------
+    # 5.  Force plot
+    # ------------------------------------------------------------------
+    fig, ax = plt.subplots(figsize=(10, 4), dpi=120)
+    shap.force_plot(st.session_state.explainer.expected_value,
+                    shap_vals,
+                    X_row.iloc[0],
+                    matplotlib=True, show=False, ax=ax)
     plt.tight_layout()
     st.pyplot(fig)
-    plt.clf() # Clear the current figure to prevent it from affecting other plots
-    
+    plt.clf()
+
+    # ------------------------------------------------------------------
+    # 6.  Unit-vs-SHAP scatter per feature
+    # ------------------------------------------------------------------
+    st.markdown("### Unit-vs-SHAP per feature")
+    # If the user chose a patient from the file we can show a _global_ scatter
+    # using the original data.  Otherwise (custom input) we skip this.
+    if chosen_label != "Current custom input":
+        # Compute SHAP for the full original dataset (cached for speed)
+        @st.cache_data
+        def _full_shap():
+            X_all = pd.get_dummies(
+                df.drop(columns=['target', 'label']),
+                columns=['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal'],
+                drop_first=True
+            )
+            X_all = X_all.reindex(columns=final_cols, fill_value=0)
+            X_all[num_feats] = scaler.transform(X_all[num_feats])
+            sv = st.session_state.explainer.shap_values(X_all)[0]
+            return X_all, sv
+
+        X_all, sv_all = _full_shap()
+
+        feat = st.selectbox("Choose a feature for the unit-vs-SHAP plot",
+                            options=X_all.columns)
+        fig2 = px.scatter(
+            x=X_all[feat],
+            y=sv_all[:, X_all.columns.get_loc(feat)],
+            color=df['target'].astype(str),
+            labels={'x': f"{feat} (unit value)",
+                    'y': f"SHAP value for {feat}",
+                    'color': "True target"},
+            title=f"{feat}  vs  its SHAP contribution"
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+    # ------------------------------------------------------------------
+    # 7.  Navigation
+    # ------------------------------------------------------------------
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
