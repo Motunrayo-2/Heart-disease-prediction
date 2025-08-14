@@ -13,12 +13,12 @@ import time
 def load_assets():
     """Loads the model, scaler, and SHAP background data only once."""
     try:
-        model = tf.keras.models.load_model('MY_ANN_model.h5')
+        model = tf.keras.models.load_model('MY_ANNe_model.h5')
         scaler = joblib.load('scaler.joblib')
         background_data = pd.read_csv('background_data.csv')
         df = pd.read_csv('heart.csv') # Load original data for insights page
     except FileNotFoundError as e:
-        st.error(f"Error: {e}. Please ensure all necessary files ( scaler.joblib, background_data.csv, MY_ANN.csv) are in the app's directory.")
+        st.error(f"Error: {e}. Please ensure all necessary files (model.h5, scaler.joblib, background_data.csv, heart_disease.csv) are in the app's directory.")
         st.stop()
     return model, scaler, background_data, df
 
@@ -89,6 +89,8 @@ if 'shap_values' not in st.session_state:
     st.session_state.shap_values = None
 if 'input_aligned' not in st.session_state:
     st.session_state.input_aligned = None
+if 'explainer' not in st.session_state:
+    st.session_state.explainer = None
 
 # --- 4. Page Functions ---
 def intro_page():
@@ -203,7 +205,7 @@ def prediction_page():
             st.session_state.page = 'input_form'
 
 def shap_explanation_page():
-   """Fourth page: Displays the SHAP force plot with a new explanation."""
+    """Fourth page: Displays the SHAP force plot with a new explanation."""
     st.title("How the Model Made its Prediction")
     st.markdown("---")
 
@@ -270,6 +272,7 @@ def shap_explanation_page():
     with col2:
         if st.button("Back to Prediction"):
             st.session_state.page = 'prediction'
+
 def insights_page():
     """Fifth page: Displays feature comparison bar charts."""
     st.title("Model Insights and Feature Comparison")
