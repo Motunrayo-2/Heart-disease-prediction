@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 def load_assets():
     """Loads the model, scaler, and SHAP background data only once."""
     try:
-        model = tf.keras.models.load_model('heart_disease_model.h5')
+        model = tf.keras.models.load_model('MY_ANN_model.h5')
         scaler = joblib.load('scaler.joblib')
         background_data = pd.read_csv('background_data(1).csv')
     except FileNotFoundError as e:
