@@ -13,10 +13,10 @@ import time
 def load_assets():
     """Loads the model, scaler, and SHAP background data only once."""
     try:
-        model = tf.keras.models.load_model('heart_disease_model.h5')
+        model = tf.keras.models.load_model('MY_ANN_model.h5')
         scaler = joblib.load('scaler.joblib')
         background_data = pd.read_csv('background_data.csv')
-        df = pd.read_csv('heart_disease.csv') # Load original data for insights page
+        df = pd.read_csv('heart.csv') # Load original data for insights page
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure all necessary files (model.h5, scaler.joblib, background_data.csv, heart_disease.csv) are in the app's directory.")
         st.stop()
