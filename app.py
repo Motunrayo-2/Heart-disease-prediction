@@ -254,8 +254,8 @@ def shap_explanation_page():
 
     # Display SHAP force plot
     fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
-    shap.force_plot(
-        st.session_state.explainer.expected_value[0], 
+   shap.force_plot(
+        st.session_state.explainer.expected_value, 
         st.session_state.shap_values,
         st.session_state.input_aligned.iloc[0], 
         matplotlib=True,
