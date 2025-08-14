@@ -13,10 +13,10 @@ import time
 def load_assets():
     """Loads the model, scaler, and SHAP background data only once."""
     try:
-        model = tf.keras.models.load_model('MY_ANN_model.h5')
+        model = tf.keras.models.load_model('heart_disease_model.h5')
         scaler = joblib.load('scaler.joblib')
         background_data = pd.read_csv('background_data.csv')
-        df = pd.read_csv('heart.csv') # Load original data for insights page
+        df = pd.read_csv('heart_disease.csv') # Load original data for insights page
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure all necessary files (model.h5, scaler.joblib, background_data.csv, heart_disease.csv) are in the app's directory.")
         st.stop()
@@ -100,7 +100,11 @@ def intro_page():
     st.write("Welcome! This application predicts the risk of heart disease based on a patient's medical metrics.")
     st.write("To get started, please click the button below to input the patient's information.")
     
-    st.image('image.jpeg', use_column_width=True)
+    # Place your image file (e.g., 'image.png') in the same directory as this script.
+    # st.image('image.png', use_column_width=True) # User's requested code
+    # Using a placeholder for demonstration. Change 'image.png' to your file name.
+    st.image('https://images.unsplash.com/photo-1576091160550-2173f47c09d9?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', use_column_width=True)
+
 
     st.markdown("---")
     if st.button("Start Inputting Features"):
@@ -222,14 +226,10 @@ def shap_explanation_page():
     """)
 
     # Calculate SHAP values only once
-    if st.session_state.shap_values is None:
-        explainer = shap.KernelExplainer(model.predict, background_data)
-        # We need to flatten the 2D array for a single sample into a 1D array
-        # to prevent the "multiple samples" error with matplotlib=True
-        shap_values = explainer.shap_values(st.session_state.input_aligned)[0].flatten()
-        st.session_state.shap_values = shap_values
-        st.session_state.explainer = explainer
-    
+    if 'explainer' not in st.session_state or st.session_state.explainer is None:
+        st.session_state.explainer = shap.KernelExplainer(model.predict, background_data)
+        st.session_state.shap_values = st.session_state.explainer.shap_values(st.session_state.input_aligned)[0].flatten()
+
     # New code to explain feature contributions in text
     st.markdown("### Feature Contributions")
     
@@ -256,13 +256,14 @@ def shap_explanation_page():
     fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
     shap.force_plot(
         st.session_state.explainer.expected_value[0], 
-        st.session_state.shap_values, # This is now a 1D array
+        st.session_state.shap_values,
         st.session_state.input_aligned.iloc[0], 
         matplotlib=True,
         show=False,
     )
     plt.tight_layout()
     st.pyplot(fig)
+    plt.clf() # Clear the current figure to prevent it from affecting other plots
     
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -274,26 +275,46 @@ def shap_explanation_page():
             st.session_state.page = 'prediction'
 
 def insights_page():
-    """Fifth page: Displays feature comparison bar charts."""
+    """Fifth page: Displays feature comparison charts with a dropdown."""
     st.title("Model Insights and Feature Comparison")
     st.markdown("---")
     
-    st.write("This section provides a deeper look into the data and how certain features differ between patients with and without heart disease.")
+    st.write("Explore the data by selecting a feature to see its distribution in patients with and without heart disease.")
 
-    # Get original data with target
-    df_with_target = pd.concat([background_data, df['target'].loc[background_data.index]], axis=1)
+    # List of all features from the original dataset
+    all_features = df.columns.tolist()
+    all_features.remove('target')
+    
+    selected_feature = st.selectbox("Select a feature to plot", options=all_features)
 
-    st.subheader("Comparison of Key Features")
-    st.write("Comparing the average values for key features between patients with (1) and without (0) heart disease.")
-    
-    fig = px.bar(
-        df_with_target.groupby('target')[['age', 'chol', 'thalach', 'oldpeak']].mean().T,
-        barmode='group',
-        labels={'value': 'Average Value', 'target': 'Heart Disease'},
-        title="Average Values of Features by Target"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    
+    st.subheader(f"Distribution of '{selected_feature}' by Heart Disease Status")
+
+    # Check if the selected feature is numerical or categorical to choose the plot type
+    if df[selected_feature].dtype in ['int64', 'float64']:
+        # Plot for numerical features (Box plot is a good choice for distribution comparison)
+        fig = px.box(
+            df,
+            x='target',
+            y=selected_feature,
+            color='target',
+            title=f"Box Plot of {selected_feature} by Target",
+            labels={'target': 'Heart Disease', selected_feature: selected_feature},
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        # Plot for categorical features (Bar chart for counts)
+        plot_df = df.groupby(['target', selected_feature]).size().reset_index(name='count')
+        fig = px.bar(
+            plot_df,
+            x=selected_feature,
+            y='count',
+            color='target',
+            barmode='group',
+            title=f"Bar Chart of {selected_feature} by Target",
+            labels={'target': 'Heart Disease', selected_feature: selected_feature, 'count': 'Count'},
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
     st.markdown("---")
     if st.button("Back to SHAP"):
         st.session_state.page = 'shap_explanation'
