@@ -203,7 +203,7 @@ def prediction_page():
             st.session_state.page = 'input_form'
 
 def shap_explanation_page():
-    """Fourth page: Displays the SHAP force plot with a new explanation."""
+   """Fourth page: Displays the SHAP force plot with a new explanation."""
     st.title("How the Model Made its Prediction")
     st.markdown("---")
 
@@ -222,15 +222,18 @@ def shap_explanation_page():
     # Calculate SHAP values only once
     if st.session_state.shap_values is None:
         explainer = shap.KernelExplainer(model.predict, background_data)
-        shap_values = explainer.shap_values(st.session_state.input_aligned)
+        # We need to flatten the 2D array for a single sample into a 1D array
+        # to prevent the "multiple samples" error with matplotlib=True
+        shap_values = explainer.shap_values(st.session_state.input_aligned)[0].flatten()
         st.session_state.shap_values = shap_values
+        st.session_state.explainer = explainer
     
     # New code to explain feature contributions in text
     st.markdown("### Feature Contributions")
     
     shap_df = pd.DataFrame({
         'feature': st.session_state.input_aligned.columns,
-        'shap_value': st.session_state.shap_values[0].flatten()
+        'shap_value': st.session_state.shap_values
     })
 
     # Calculate percentage contribution
@@ -250,9 +253,9 @@ def shap_explanation_page():
     # Display SHAP force plot
     fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
     shap.force_plot(
-        explainer.expected_value[0], 
-        st.session_state.shap_values[0], 
-        st.session_state.input_aligned,
+        st.session_state.explainer.expected_value[0], 
+        st.session_state.shap_values, # This is now a 1D array
+        st.session_state.input_aligned.iloc[0], 
         matplotlib=True,
         show=False,
     )
@@ -267,7 +270,6 @@ def shap_explanation_page():
     with col2:
         if st.button("Back to Prediction"):
             st.session_state.page = 'prediction'
-
 def insights_page():
     """Fifth page: Displays feature comparison bar charts."""
     st.title("Model Insights and Feature Comparison")
