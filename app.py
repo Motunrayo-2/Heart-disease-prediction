@@ -13,7 +13,7 @@ def load_assets():
     try:
         model = tf.keras.models.load_model('MY_ANN_model.h5')
         scaler = joblib.load('scaler.joblib')
-        background_data = pd.read_csv('background_data(1).csv')
+        background_data = pd.read_csv('background_data.csv')
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure all necessary files (model.h5, scaler.joblib, background_data.csv) are in the app's directory.")
         st.stop()
