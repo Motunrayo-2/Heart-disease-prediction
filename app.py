@@ -202,7 +202,7 @@ def prediction_page():
             st.session_state.page = 'input_form'
 
 def shap_explanation_page():
-    """Fourth page: Displays the SHAP force plot."""
+        """Fourth page: Displays the SHAP force plot."""
     st.title("How the Model Made its Prediction")
     st.markdown("---")
     st.write("The chart below shows how each feature contributed to the final prediction. Red features push the prediction towards heart disease, while blue features push it away.")
@@ -216,6 +216,7 @@ def shap_explanation_page():
     # Display SHAP force plot
     fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
     shap.force_plot(
+        explainer.expected_value[0], 
         st.session_state.shap_values[0], 
         st.session_state.input_aligned,
         matplotlib=True,
