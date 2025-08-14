@@ -16,7 +16,7 @@ def load_assets():
         model = tf.keras.models.load_model('MY_ANN_model.h5')
         scaler = joblib.load('scaler.joblib')
         background_data = pd.read_csv('background_data.csv')
-        df = pd.read_csv('heart_disease.csv') # Load original data for insights page
+        df = pd.read_csv('MY_ANN_model.csv') # Load original data for insights page
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure all necessary files ( scaler.joblib, background_data.csv, MY_ANN.csv) are in the app's directory.")
         st.stop()
