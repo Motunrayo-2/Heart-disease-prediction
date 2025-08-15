@@ -136,7 +136,7 @@ def intro_page():
 
     st.markdown("---")
   nav_button("Start Inputting Features", "input_form", bg="#28a745")
-        st.session_state.page = 'input_form'
+       
 
 def input_form_page():
     """Second page: User input form for features."""
