@@ -342,50 +342,118 @@ def shap_explanation_page():
         if st.button("Back to Prediction"):
             st.session_state.page = 'prediction'
 
+# ------------------------------------------------------------------
+# NEW insights_page – with two download buttons
+# ------------------------------------------------------------------
 def insights_page():
-    """Fifth page: Displays feature comparison charts with a dropdown."""
     st.title("Model Insights and Feature Comparison")
     st.markdown("---")
-    
-    st.write("Explore the data by selecting a feature to see its distribution in patients with and without heart disease.")
 
-    # List of all features from the original dataset
-    all_features = df.columns.tolist()
-    all_features.remove('target')
-    
-    selected_feature = st.selectbox("Select a feature to plot", options=all_features)
+    # ------------------------------------------------------------------
+    # 1. Sidebar controls (unchanged)
+    # ------------------------------------------------------------------
+    st.sidebar.subheader("Filters")
+    numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns.tolist()
+    numeric_cols.remove("target")
+    selected_feat = st.sidebar.selectbox("Select a feature to analyse", numeric_cols)
 
-    st.subheader(f"Distribution of '{selected_feature}' by Heart Disease Status")
+    show_scatter = st.sidebar.checkbox("Compare two features (scatter)")
+    if show_scatter:
+        second_feat = st.sidebar.selectbox("Second feature", [c for c in numeric_cols if c != selected_feat])
 
-    # Check if the selected feature is numerical or categorical to choose the plot type
-    if df[selected_feature].dtype in ['int64', 'float64']:
-        # Plot for numerical features (Box plot is a good choice for distribution comparison)
-        fig = px.box(
-            df,
-            x='target',
-            y=selected_feature,
-            color='target',
-            title=f"Box Plot of {selected_feature} by Target",
-            labels={'target': 'Heart Disease', selected_feature: selected_feature},
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    # ------------------------------------------------------------------
+    # 2. Univariate plot + stats (unchanged)
+    # ------------------------------------------------------------------
+    st.subheader(f"Distribution of '{selected_feat}' by Heart Disease status")
+    plot_type = st.radio("Plot style", ["box", "violin"], horizontal=True)
+    if plot_type == "box":
+        fig = px.box(df, x="target", y=selected_feat, color="target",
+                     labels={"target": "Heart Disease"}, height=350)
     else:
-        # Plot for categorical features (Bar chart for counts)
-        plot_df = df.groupby(['target', selected_feature]).size().reset_index(name='count')
-        fig = px.bar(
-            plot_df,
-            x=selected_feature,
-            y='count',
-            color='target',
-            barmode='group',
-            title=f"Bar Chart of {selected_feature} by Target",
-            labels={'target': 'Heart Disease', selected_feature: selected_feature, 'count': 'Count'},
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        fig = px.violin(df, x="target", y=selected_feat, color="target",
+                        box=True, labels={"target": "Heart Disease"}, height=350)
+    st.plotly_chart(fig, use_container_width=True)
 
+    from scipy import stats
+    grp0 = df[df["target"] == 0][selected_feat]
+    grp1 = df[df["target"] == 1][selected_feat]
+    t_stat, p_val = stats.ttest_ind(grp0, grp1, equal_var=False)
+    st.info(
+        f"**Welch’s t-test** for {selected_feat}:  t = {t_stat:.2f},  p = {p_val:.4f}"
+        + (" ➜ **significant**" if p_val < 0.05 else " ➜ **not significant**")
+    )
+
+    st.write("**Descriptive statistics**")
+    summary = df.groupby("target")[selected_feat].describe().T
+    st.dataframe(summary.style.format("{:.2f}"))
+
+    # ------------------------------------------------------------------
+    # 3. Optional bivariate scatter (unchanged)
+    # ------------------------------------------------------------------
+    if show_scatter:
+        st.subheader(f"Scatter: {selected_feat} vs {second_feat}")
+        fig2 = px.scatter(
+            df,
+            x=selected_feat,
+            y=second_feat,
+            color="target",
+            trendline="ols",
+            labels={"target": "Heart Disease"},
+            height=400,
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+    # ------------------------------------------------------------------
+    # 4. Correlation heat-map (unchanged)
+    # ------------------------------------------------------------------
+    st.subheader("Correlation heat-map (numeric features)")
+    corr = df[numeric_cols + ["target"]].corr()
+    fig3 = px.imshow(corr, text_auto=".2f", aspect="auto", color_continuous_scale="RdBu_r")
+    st.plotly_chart(fig3, use_container_width=True)
+
+    # ------------------------------------------------------------------
+    # 5. DOWNLOAD SECTION
+    # ------------------------------------------------------------------
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+
+    # 5a. Download the PUBLIC dataset
+    public_csv = df.drop(columns=["label"], errors="ignore").to_csv(index=False)
+    with col1:
+        st.download_button(
+            label="📁 Download Public Training Data",
+            data=public_csv,
+            file_name="public_heart_data.csv",
+            mime="text/csv"
+        )
+
+    # 5b. Download the USER’S INPUT row
+    if st.session_state.user_input is not None:
+        # Re-assemble the row exactly as the user typed it
+        user_dict = st.session_state.user_input.copy()
+        # Add the prediction and probability
+        user_dict["predicted_class"] = st.session_state.prediction
+        user_dict["predicted_probability_%"] = round(st.session_state.prediction_proba, 2)
+
+        user_df = pd.DataFrame([user_dict])
+        user_csv = user_df.to_csv(index=False)
+        with col2:
+            st.download_button(
+                label="📥 Download My Input Row",
+                data=user_csv,
+                file_name="my_patient_input.csv",
+                mime="text/csv"
+            )
+    else:
+        with col2:
+            st.write("No custom input yet.")
+
+    # ------------------------------------------------------------------
+    # 6. Navigation
+    # ------------------------------------------------------------------
     st.markdown("---")
     if st.button("Back to SHAP"):
-        st.session_state.page = 'shap_explanation'
+        st.session_state.page = "shap_explanation"
 
 # --- 5. Main App Flow ---
 def main():
