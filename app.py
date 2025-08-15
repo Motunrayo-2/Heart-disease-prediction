@@ -8,30 +8,33 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import time
 
-def nav_button(label, target_page, colour="primary", icon=""):
+def nav_button(label, target_page, bg="#28a745", icon=""):
     """
-    colour: 'primary' (green), 'secondary' (amber), 'danger' (red)
-    icon  : Unicode arrow or emoji
+    bg   : hex colour for background
+    icon : unicode arrow / emoji
     """
-    m = st.markdown if st.session_state.get("theme") == "dark" else st.markdown
-    st.markdown(
-        f"""
-        <style>
-        div.stButton > button:first-child {{
-            background-color: {colour};
-            color: white;
-            border-radius: 20px;
-            height: 3em;
-            width: auto;
-            font-weight: bold;
-            font-size: 1rem;
-            min-width: 160px;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    if st.button(f"{icon} {label}"):
+    #  individual button style → no global leak
+    html = f"""
+    <style>
+    .btn-{target_page} {{
+        background-color: {bg};
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 0.6em 1.2em;
+        font-weight: bold;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: 0.3s;
+    }}
+    .btn-{target_page}:hover {{
+        filter: brightness(1.1);
+    }}
+    </style>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+    if st.button(f"{icon} {label}", key=f"btn_{target_page}"):
         st.session_state.page = target_page
         
 # --- 1. Load Assets ---
@@ -133,9 +136,8 @@ def intro_page():
 
 
     st.markdown("---")
-    nav_button("Start Input ", "input_form", colour="#28a745", icon="▶")
-    if st.button("Start Inputting Features"):
-        st.session_state.page = 'input_form'
+   st.markdown("---")
+nav_button("Start Input ▶️", "input_form", bg="#28a745", icon="▶️")
 
 def input_form_page():
     """Second page: User input form for features."""
