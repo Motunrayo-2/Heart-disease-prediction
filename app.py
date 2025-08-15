@@ -135,7 +135,7 @@ def intro_page():
     st.image('image.jpeg', use_column_width=True)
 
     st.markdown("---")
-  nav_button("Start Inputting Features", "input_form", bg="#28a745")
+    nav_button("Start Inputting Features", "input_form", bg="#28a745")
        
 def input_form_page():
     """Second page: User input form for features."""
