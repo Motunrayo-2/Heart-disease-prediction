@@ -134,7 +134,6 @@ def intro_page():
     # Using a placeholder for demonstration. Change 'image.png' to your file name.
     st.image('image.jpeg', use_column_width=True)
 
-
     st.markdown("---")
   nav_button("Start Inputting Features", "input_form", bg="#28a745")
         st.session_state.page = 'input_form'
