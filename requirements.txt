@@ -7,4 +7,4 @@ shap
 joblib
 matplotlib
 plotly
-
+statsmodels==0.14.2
