@@ -208,7 +208,6 @@ def prediction_page():
         if st.button("Back to Input"):
             st.session_state.page = 'input_form'
 
-def shap_explanation_page():
  # ------------------------------------------------------------------
 # NEW  shap_explanation_page  (drop-in replacement)
 # ------------------------------------------------------------------
