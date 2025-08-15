@@ -133,7 +133,7 @@ def intro_page():
 
 
     st.markdown("---")
-    nav_button("Start Input ▶️", "input_form", colour="#28a745", icon="▶️")
+    nav_button("Start Input ", "input_form", colour="#28a745", icon="▶")
     if st.button("Start Inputting Features"):
         st.session_state.page = 'input_form'
 
