@@ -215,46 +215,44 @@ def shap_explanation_page():
     st.title("How the Model Made its Prediction")
     st.markdown("---")
 
-    # 1. Use ONLY the custom input that was already stored
+    # 1. Grab the user’s row
     X_row = st.session_state.input_aligned
 
-    # 2. Build / reuse the SHAP explainer (cached once)
+    # 2. Re-use/cached explainer
     if "explainer" not in st.session_state or st.session_state.explainer is None:
-        st.session_state.explainer = shap.KernelExplainer(
-            model.predict, background_data
-        )
+        st.session_state.explainer = shap.KernelExplainer(model.predict, background_data)
 
     shap_vals = st.session_state.explainer.shap_values(X_row)[0].flatten()
 
-    # 3. Text contributions
-    st.markdown("### Feature Contributions")
+    # 3. Build a tidy dataframe
     shap_df = pd.DataFrame({
         "feature": X_row.columns,
-        "shap_value": shap_vals
+        "value": X_row.iloc[0].values,
+        "shap": shap_vals
     })
-    total = shap_df["shap_value"].abs().sum()
-    shap_df["contrib_pct"] = shap_df["shap_value"].abs() / total * 100
-    shap_df = shap_df.sort_values("contrib_pct", ascending=False)
+    shap_df["abs_shap"] = shap_df["shap"].abs()
+    shap_df = shap_df.sort_values("abs_shap", ascending=True)
 
-    for _, r in shap_df.head(10).iterrows():
-        direction = "toward" if r.shap_value > 0 else "away from"
-        st.write(
-            f"- **{r.feature}** contributed **{r.contrib_pct:.1f}%**, pushing the model {direction} disease"
-        )
+    # 4. Horizontal bar chart
+    fig, ax = plt.subplots(figsize=(5, max(4, len(shap_df) * 0.3)))
+    colors = ["#3498db" if s < 0 else "#e74c3c" for s in shap_df["shap"]]
+    ax.barh(shap_df["feature"], shap_df["shap"], color=colors)
+    ax.set_xlabel("SHAP value (impact on prediction)")
+    ax.axvline(0, color="black", lw=0.5)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.clf()
 
-    # 4. Force plot – fixed call
-fig = shap.force_plot(
-    st.session_state.explainer.expected_value,
-    shap_vals,
-    X_row.iloc[0:1],          # keep column names
-    matplotlib=True,
-    show=False
-)
-# shap returns a matplotlib Figure; display it
-st.pyplot(fig)
-plt.clf()
+    # 5. Numeric contributions table
+    total = shap_df["abs_shap"].sum()
+    shap_df["contrib_pct"] = shap_df["abs_shap"] / total * 100
+    st.dataframe(
+        shap_df[["feature", "value", "shap", "contrib_pct"]]
+        .sort_values("contrib_pct", ascending=False)
+        .style.format({"value": "{:.2f}", "shap": "{:.3f}", "contrib_pct": "{:.1f}%"})
+    )
 
-    # 5. Navigation
+    # 6. Navigation
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
