@@ -215,35 +215,54 @@ def shap_explanation_page():
     st.title("How the Model Made its Prediction")
     st.markdown("---")
 
-    # 1. Grab the user’s row
+    st.markdown("""
+    **How to read the chart below:**
+
+    - Each bar = **one feature you entered**.  
+    - **Red bars** push the model **toward** predicting heart disease.  
+    - **Blue bars** push the model **away** from predicting heart disease.  
+    - The **table** shows exact numbers.
+    """)
+
+    # Make sure we have a row to explain
+    if st.session_state.input_aligned is None or st.session_state.input_aligned.empty:
+        st.warning("No patient data available. Please go back and enter features.")
+        if st.button("Back to Prediction"):
+            st.session_state.page = "prediction"
+        return
+
     X_row = st.session_state.input_aligned
 
-    # 2. Re-use/cached explainer
+    # Build / reuse explainer (cached)
     if "explainer" not in st.session_state or st.session_state.explainer is None:
         st.session_state.explainer = shap.KernelExplainer(model.predict, background_data)
 
-    shap_vals = st.session_state.explainer.shap_values(X_row)[0].flatten()
+    # Compute SHAP only once and cache the result
+    if "shap_vals" not in st.session_state or st.session_state.shap_vals is None:
+        st.session_state.shap_vals = st.session_state.explainer.shap_values(X_row)[0].flatten()
 
-    # 3. Build a tidy dataframe
+    shap_vals = st.session_state.shap_vals
+
+    # Tidy dataframe
     shap_df = pd.DataFrame({
         "feature": X_row.columns,
         "value": X_row.iloc[0].values,
         "shap": shap_vals
     })
     shap_df["abs_shap"] = shap_df["shap"].abs()
-    shap_df = shap_df.sort_values("abs_shap", ascending=True)
+    shap_df = shap_df.sort_values("abs_shap")
 
-    # 4. Horizontal bar chart
+    # Horizontal bar chart
     fig, ax = plt.subplots(figsize=(5, max(4, len(shap_df) * 0.3)))
     colors = ["#3498db" if s < 0 else "#e74c3c" for s in shap_df["shap"]]
     ax.barh(shap_df["feature"], shap_df["shap"], color=colors)
     ax.set_xlabel("SHAP value (impact on prediction)")
-    ax.axvline(0, color="black", lw=0.5)
+    ax.axvline(0, color="black", linewidth=0.5)
     plt.tight_layout()
     st.pyplot(fig)
     plt.clf()
 
-    # 5. Numeric contributions table
+    # Contribution table
     total = shap_df["abs_shap"].sum()
     shap_df["contrib_pct"] = shap_df["abs_shap"] / total * 100
     st.dataframe(
@@ -252,7 +271,7 @@ def shap_explanation_page():
         .style.format({"value": "{:.2f}", "shap": "{:.3f}", "contrib_pct": "{:.1f}%"})
     )
 
-    # 6. Navigation
+    # Navigation
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
