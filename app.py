@@ -136,8 +136,7 @@ def intro_page():
 
 
     st.markdown("---")
-   st.markdown("---")
-    if st.button("Start Inputting Features"):
+  nav_button("Start Inputting Features", "input_form", bg="#28a745")
         st.session_state.page = 'input_form'
 
 def input_form_page():
@@ -165,12 +164,10 @@ def input_form_page():
 
     st.markdown("---")
     col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Back to Intro"):
-            st.session_state.page = 'intro'
-    with col2:
-        if st.button("Get Prediction"):
-            st.session_state.page = 'prediction'
+with col1:
+    nav_button("Back to Intro", "intro", bg="#dc3545")
+with col2:
+    nav_button("Get Prediction", "prediction", bg="#28a745")
 
 def prediction_page():
     """Third page: Displays the prediction and custom progress bar."""
@@ -213,30 +210,30 @@ def prediction_page():
     # Display the result
     st.subheader(f"Prediction: {st.session_state.prediction}")
     
-    # Custom progress bar visualization
-    st.markdown("### Risk Level")
-    prob = st.session_state.prediction_proba
-    if st.session_state.prediction == 'Heart Disease':
-        st.write(f"The model predicts a **{prob:.2f}%** risk of heart disease.")
-        progress_color = '#d9534f' # Red
-    else:
-        st.write(f"The model predicts a **{(100-prob):.2f}%** chance of no heart disease.")
-        progress_color = '#5cb85c' # Green
+   # --- Animated progress bar ---
+prob = st.session_state.prediction_proba
+bar_colour = "#e74c3c" if st.session_state.prediction == 'Heart Disease' else "#28a745"
 
-    st.markdown(f"""
-        <div style="background-color: #e9ecef; border-radius: 20px; height: 30px;">
-            <div style="background-color: {progress_color}; height: 100%; width: {prob}%; border-radius: 20px; transition: width 1s;"></div>
-        </div>
-    """, unsafe_allow_html=True)
+st.markdown("### Risk Level")
+st.write(
+    f"The model predicts a **{prob:.1f}%** risk of heart disease."
+    if st.session_state.prediction == 'Heart Disease'
+    else f"The model predicts a **{(100-prob):.1f}%** chance of no heart disease."
+)
+
+progress_bar = st.progress(0)
+for pct in range(0, int(prob) + 1):
+    time.sleep(0.015)        # smooth 1.5-second fill
+    progress_bar.progress(pct / 100)
+
+st.success("Analysis complete!")
     
     st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("View SHAP Explanation"):
-            st.session_state.page = 'shap_explanation'
-    with col2:
-        if st.button("Back to Input"):
-            st.session_state.page = 'input_form'
+ col1, col2 = st.columns(2)
+with col1:
+    nav_button("Back to Input", "input_form", bg="#dc3545")
+with col2:
+    nav_button("View SHAP Explanation", "shap_explanation", bg="#28a745")
 
  # ------------------------------------------------------------------
 # NEW  shap_explanation_page  (drop-in replacement)
@@ -304,12 +301,10 @@ def shap_explanation_page():
     # Navigation
     st.markdown("---")
     col1, col2 = st.columns(2)
-    with col1:
-        if st.button("View Feature Insights"):
-            st.session_state.page = "insights"
-    with col2:
-        if st.button("Back to Prediction"):
-            st.session_state.page = "prediction"
+with col1:
+    nav_button("Back to Prediction", "prediction", bg="#dc3545")
+with col2:
+    nav_button("View Feature Insights", "insights", bg="#28a745")
 # ------------------------------------------------------------------
 # NEW insights_page – with two download buttons
 # ------------------------------------------------------------------
@@ -411,8 +406,14 @@ def insights_page():
 
     # ---------- 5️⃣  Navigation ----------
     st.markdown("---")
-    if st.button("Back to SHAP"):
-        st.session_state.page = "shap_explanation"
+if st.button("Back to SHAP"):
+    st.session_state.page = "shap_explanation"
+    
+    # ---------- 6.  Finish / Restart ----------
+st.markdown("---")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    nav_button("🎉 Finish & Start Over", "intro", bg="#28a745")
 
 # --- 5. Main App Flow ---
 def main():
