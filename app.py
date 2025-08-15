@@ -242,19 +242,17 @@ def shap_explanation_page():
             f"- **{r.feature}** contributed **{r.contrib_pct:.1f}%**, pushing the model {direction} disease"
         )
 
-    # 4. Force plot (fixed call)
-    fig, ax = plt.subplots(figsize=(10, 3), dpi=120)
-    shap.force_plot(
-        st.session_state.explainer.expected_value,
-        shap_vals,
-        X_row.iloc[0:1],          # pass DataFrame slice so names are kept
-        matplotlib=True,
-        show=False,
-        ax=ax
-    )
-    plt.tight_layout()
-    st.pyplot(fig)
-    plt.clf()
+    # 4. Force plot – fixed call
+fig = shap.force_plot(
+    st.session_state.explainer.expected_value,
+    shap_vals,
+    X_row.iloc[0:1],          # keep column names
+    matplotlib=True,
+    show=False
+)
+# shap returns a matplotlib Figure; display it
+st.pyplot(fig)
+plt.clf()
 
     # 5. Navigation
     st.markdown("---")
