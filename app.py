@@ -8,6 +8,32 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import time
 
+def nav_button(label, target_page, colour="primary", icon=""):
+    """
+    colour: 'primary' (green), 'secondary' (amber), 'danger' (red)
+    icon  : Unicode arrow or emoji
+    """
+    m = st.markdown if st.session_state.get("theme") == "dark" else st.markdown
+    st.markdown(
+        f"""
+        <style>
+        div.stButton > button:first-child {{
+            background-color: {colour};
+            color: white;
+            border-radius: 20px;
+            height: 3em;
+            width: auto;
+            font-weight: bold;
+            font-size: 1rem;
+            min-width: 160px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button(f"{icon} {label}"):
+        st.session_state.page = target_page
+        
 # --- 1. Load Assets ---
 @st.cache_resource
 def load_assets():
@@ -107,6 +133,7 @@ def intro_page():
 
 
     st.markdown("---")
+    nav_button("Start Input ▶️", "input_form", colour="#28a745", icon="▶️")
     if st.button("Start Inputting Features"):
         st.session_state.page = 'input_form'
 
