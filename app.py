@@ -212,7 +212,7 @@ def prediction_page():
 prob = st.session_state.prediction_proba
 bar_colour = "#e74c3c" if st.session_state.prediction == 'Heart Disease' else "#28a745"
 
-  st.markdown("### Risk Level")
+st.markdown("### Risk Level")
   st.write(
         f"The model predicts a **{prob:.1f}%** risk of heart disease."
         if st.session_state.prediction == 'Heart Disease'
