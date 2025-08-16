@@ -44,7 +44,7 @@ def intro_page():
     
     # Make image optional
     try:
-        st.image('image.jpeg', use_container_width=True)
+        st.image('image.jpeg', use_column_width=True)
     except:
         pass  # Skip image if not found
     
@@ -215,65 +215,20 @@ def insights_page():
     # ---------- 1️⃣  Univariate ----------
     st.subheader(f"Distribution of '{selected_feat}' by Heart Disease")
     plot_type = st.radio("Plot style", ["box", "violin"], horizontal=True)
-    
-    # Make sure target column exists and create a proper plot
-    if "target" not in df.columns:
-        st.error("Target column not found in dataset")
-        return
-    
-    try:
-        # Create the plot based on selection
-        if plot_type == "box":
-            fig = px.box(df, x="target", y=selected_feat, color="target", 
-                        labels={"target": "Heart Disease", selected_feat: selected_feat},
-                        title=f"Box Plot: {selected_feat} by Heart Disease Status")
-        else:
-            fig = px.violin(df, x="target", y=selected_feat, color="target", box=True,
-                           labels={"target": "Heart Disease", selected_feat: selected_feat},
-                           title=f"Violin Plot: {selected_feat} by Heart Disease Status")
-        
-        # Update layout for better readability
-        fig.update_xaxis(tickvals=[0, 1], ticktext=["No Heart Disease", "Heart Disease"])
-        st.plotly_chart(fig, use_container_width=True)
-        
-    except Exception as e:
-        st.error(f"Error creating plot: {e}")
-        st.info("Please check if the selected feature exists in the dataset")
+    fig = (px.box(df, x="target", y=selected_feat, color="target")
+           if plot_type == "box"
+           else px.violin(df, x="target", y=selected_feat, color="target", box=True))
+    st.plotly_chart(fig, use_container_width=True)
 
-    # ---------- 2️⃣  Scatter plots ----------
+    # ---------- 2️⃣  Scatter comparison ----------
     if show_scatter and second_feat:
-        # Two-feature scatter plot
         st.subheader(f"Scatter: {selected_feat} vs {second_feat}")
-        fig2 = px.scatter(df, x=selected_feat, y=second_feat, color="target",
-                         labels={"target": "Heart Disease"},
-                         title=f"{selected_feat} vs {second_feat} by Heart Disease Status")
-        fig2.update_layout(legend=dict(title="Heart Disease", labels=["No", "Yes"]))
-        st.plotly_chart(fig2, use_container_width=True)
-    else:
-        # Single feature scatter plot (feature vs index or another default)
-        st.subheader(f"Scatter Plot: {selected_feat} Distribution")
-        # Create a scatter plot with row index on x-axis to show distribution
-        df_plot = df.copy()
-        df_plot['index'] = range(len(df_plot))
-        fig2 = px.scatter(df_plot, x='index', y=selected_feat, color="target",
-                         labels={"target": "Heart Disease", "index": "Patient Index"},
-                         title=f"{selected_feat} Distribution Across Patients")
-        fig2.update_layout(legend=dict(title="Heart Disease", labels=["No", "Yes"]))
+        fig2 = px.scatter(df, x=selected_feat, y=second_feat, color="target")
         st.plotly_chart(fig2, use_container_width=True)
 
     # ---------- 3️⃣  Downloads ----------
     st.markdown("---")
     col1, col2 = st.columns(2)
-
-    # Public training data download
-    training_data_csv = df.to_csv(index=False)
-    col1.download_button(
-        "📊 Download Training Dataset", 
-        training_data_csv,
-        file_name="heart_disease_training_data.csv", 
-        mime="text/csv",
-        help="Download the public dataset used to train this model"
-    )
 
     # User row
     if st.session_state.user_input is not None:
