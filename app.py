@@ -160,40 +160,58 @@ def shap_explanation_page():
 def insights_page():
     st.title("Model Insights and Feature Comparison")
     st.markdown("---")
+
+    # ---------- Sidebar controls ----------
+    st.sidebar.subheader("Controls")
     numeric_cols = [c for c in df.select_dtypes(include=["int64", "float64"]).columns if c != "target"]
     selected_feat = st.sidebar.selectbox("Pick a feature", numeric_cols)
+
     show_scatter = st.sidebar.checkbox("Compare two features")
     second_feat = None
     if show_scatter:
         second_feat = st.sidebar.selectbox("Second feature", [c for c in numeric_cols if c != selected_feat])
 
+    # ---------- 1️⃣  Univariate ----------
     st.subheader(f"Distribution of '{selected_feat}' by Heart Disease")
     plot_type = st.radio("Plot style", ["box", "violin"], horizontal=True)
-    fig = px.box(df, x="target", y=selected_feat, color="target") if plot_type == "box" \
-        else px.violin(df, x="target", y=selected_feat, color="target", box=True)
+    fig = (px.box(df, x="target", y=selected_feat, color="target")
+           if plot_type == "box"
+           else px.violin(df, x="target", y=selected_feat, color="target", box=True))
     st.plotly_chart(fig, use_container_width=True)
 
-    from scipy import stats
-    g0, g1 = df[df["target"] == 0][selected_feat], df[df["target"] == 1][selected_feat]
-    t_stat, p_val = stats.ttest_ind(g0, g1, equal_var=False)
-    st.info(f"Welch’s t-test t={t_stat:.2f}, p={p_val:.4f}" + (" ➜ significant" if p_val < 0.05 else " ➜ not significant"))
-
-    st.write("**Descriptive statistics**")
-    st.dataframe(df.groupby("target")[selected_feat].describe().T.style.format("{:.2f}"))
-
+    # ---------- 2️⃣  Scatter comparison ----------
     if show_scatter and second_feat:
-        fig2 = px.scatter(df, x=selected_feat, y=second_feat, color="target", trendline="ols")
+        st.subheader(f"Scatter: {selected_feat} vs {second_feat}")
+        fig2 = px.scatter(df, x=selected_feat, y=second_feat, color="target")
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.subheader("Correlation heat-map")
-    corr = df[numeric_cols + ["target"]].corr()
-    st.plotly_chart(px.imshow(corr, text_auto=".2f", color_continuous_scale="RdBu_r"), use_container_width=True)
-
+    # ---------- 3️⃣  Downloads ----------
     st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2 = st.columns(2)
+
+    # Public data
+    public_csv = df.to_csv(index=False)
+    col1.download_button("📁 Download Public Training Data", public_csv,
+                         file_name="public_heart_data.csv", mime="text/csv")
+
+    # User row
+    if st.session_state.user_input is not None:
+        user_dict = st.session_state.user_input.copy()
+        user_dict["predicted_class"] = st.session_state.prediction
+        user_dict["predicted_probability_%"] = round(st.session_state.prediction_proba, 2)
+        user_csv = pd.DataFrame([user_dict]).to_csv(index=False)
+        col2.download_button("📥 Download My Input Row", user_csv,
+                             file_name="my_patient_input.csv", mime="text/csv")
+    else:
+        col2.write("No custom input yet.")
+
+    # ---------- 4️⃣  Navigation ----------
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        nav_button("Back to SHAP", "shap_explanation", bg="#dc3545")
     with col2:
-        st.button("🎉 Finish & Start Over", key="finish", on_click=lambda: setattr(st.session_state, "page", "intro"),
-                  type="primary", help="", use_container_width=True)
+        nav_button("🎉 Finish & Start Over", "intro", bg="#28a745")
 
 def main():
     page = st.session_state.page
