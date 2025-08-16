@@ -214,11 +214,6 @@ def insights_page():
     st.markdown("---")
     col1, col2 = st.columns(2)
 
-    # Public data
-    public_csv = df.to_csv(index=False)
-    col1.download_button("📁 Download Public Training Data", public_csv,
-                         file_name="public_heart_data.csv", mime="text/csv")
-
     # User row
     if st.session_state.user_input is not None:
         user_dict = st.session_state.user_input.copy()
