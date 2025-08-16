@@ -8,32 +8,68 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import time
 
+# Add this at the very beginning for debugging
+st.write("App is starting...")
+
 # ---------- load assets ----------
 @st.cache_resource
 def load_assets():
     try:
+        # Add more specific error handling
         model = tf.keras.models.load_model('MY_ANN_model.h5')
+        st.write("✅ Model loaded")
+        
         scaler = joblib.load('scaler.joblib')
+        st.write("✅ Scaler loaded")
+        
         background_data = pd.read_csv('background_data.csv')
+        st.write("✅ Background data loaded")
+        
         df = pd.read_csv('heart.csv')
+        st.write("✅ Heart data loaded")
+        
     except FileNotFoundError as e:
-        st.error(f"Error: {e}. Please ensure all necessary files are in the app's directory.")
+        st.error(f"❌ File not found: {e}")
+        st.error("Please ensure these files are in your repository:")
+        st.error("- MY_ANN_model.h5")
+        st.error("- scaler.joblib") 
+        st.error("- background_data.csv")
+        st.error("- heart.csv")
+        st.error("- image.jpeg")
+        st.stop()
+    except Exception as e:
+        st.error(f"❌ Error loading assets: {e}")
         st.stop()
     return model, scaler, background_data, df
 
-model, scaler, background_data, df = load_assets()
+# ---------- session state initialization (FIXED) ----------
+# Initialize session state with default values
+if 'page' not in st.session_state:
+    st.session_state.page = 'intro'  # Set default page
 
-# ---------- session state ----------
-for key in ['page', 'user_input', 'prediction', 'prediction_proba', 'input_aligned', 'explainer', 'shap_vals']:
+for key in ['user_input', 'prediction', 'prediction_proba', 'input_aligned', 'explainer', 'shap_vals']:
     if key not in st.session_state:
         st.session_state[key] = None
+
+# Load assets after session state initialization
+try:
+    model, scaler, background_data, df = load_assets()
+except:
+    st.error("Failed to load required files. App cannot continue.")
+    st.stop()
 
 # ---------- page functions ----------
 def intro_page():
     st.title("Cardiovascular Health: Heart Disease Risk Prediction")
     st.markdown("---")
     st.write("Welcome! This app estimates heart-disease risk from patient metrics.")
-    st.image('image.jpeg', use_column_width=True)
+    
+    # Make image optional
+    try:
+        st.image('image.jpeg', use_column_width=True)
+    except:
+        st.info("Image not found - continuing without it")
+    
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -122,6 +158,7 @@ def prediction_page():
     with col2:
         st.button("View SHAP Explanation", key="pred_next", on_click=lambda: setattr(st.session_state, "page", "shap_explanation"),
                   type="primary", use_container_width=True)
+
 def shap_explanation_page():
     st.title("How the Model Made its Prediction")
     st.markdown("---")
@@ -177,11 +214,12 @@ def shap_explanation_page():
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        st.button("Back to Prediction", key="shap_back", on_click=lambda: setattr(st.session_state, "page", "shap_explanation"),
+        st.button("Back to Prediction", key="shap_back", on_click=lambda: setattr(st.session_state, "page", "prediction"),
                   type="secondary", use_container_width=True)
     with col2:
         st.button("View Feature Insights", key="shap_next", on_click=lambda: setattr(st.session_state, "page", "insights"),
                   type="primary", use_container_width=True)
+
 def insights_page():
     st.title("Model Insights and Feature Comparison")
     st.markdown("---")
@@ -234,6 +272,7 @@ def insights_page():
     with col2:
         st.button("🎉 Finish & Start Over", key="ins_finish", on_click=lambda: setattr(st.session_state, "page", "intro"),
                   type="primary", use_container_width=True)
+
 def main():
     page = st.session_state.page
     if page == 'intro':
@@ -246,6 +285,10 @@ def main():
         shap_explanation_page()
     elif page == 'insights':
         insights_page()
+    else:
+        # Fallback if page is None or invalid
+        st.session_state.page = 'intro'
+        intro_page()
 
 if __name__ == "__main__":
     main()
