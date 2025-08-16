@@ -7,18 +7,20 @@ import joblib
 import matplotlib.pyplot as plt
 import plotly.express as px
 import time
-        
+
+# ---------- load assets ----------
+@st.cache_resource
+def load_assets():
+    try:
+        model = tf.keras.models.load_model('MY_ANN_model.h5')
+        scaler = joblib.load('scaler.joblib')
+        background_data = pd.read_csv('background_data.csv')
+        df = pd.read_csv('heart.csv')
     except FileNotFoundError as e:
-        st.error(f"❌ File not found: {e}")
-        st.error("Please ensure these files are in your repository:")
-        st.error("- MY_ANN_model.h5")
-        st.error("- scaler.joblib") 
-        st.error("- background_data.csv")
-        st.error("- heart.csv")
-        st.error("- image.jpeg")
+        st.error(f"Error: {e}. Please ensure all necessary files are in the app's directory.")
         st.stop()
     except Exception as e:
-        st.error(f"❌ Error loading assets: {e}")
+        st.error(f"Error loading assets: {e}")
         st.stop()
     return model, scaler, background_data, df
 
@@ -32,11 +34,7 @@ for key in ['user_input', 'prediction', 'prediction_proba', 'input_aligned', 'ex
         st.session_state[key] = None
 
 # Load assets after session state initialization
-try:
-    model, scaler, background_data, df = load_assets()
-except:
-    st.error("Failed to load required files. App cannot continue.")
-    st.stop()
+model, scaler, background_data, df = load_assets()
 
 # ---------- page functions ----------
 def intro_page():
@@ -48,7 +46,7 @@ def intro_page():
     try:
         st.image('image.jpeg', use_column_width=True)
     except:
-        st.info("Image not found - continuing without it")
+        pass  # Skip image if not found
     
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
