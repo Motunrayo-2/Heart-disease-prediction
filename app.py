@@ -162,9 +162,9 @@ def input_form_page():
 
     st.markdown("---")
     col1, col2 = st.columns(2)
-with col1:
+    with col1:
     nav_button("Back to Intro", "intro", bg="#dc3545")
-with col2:
+    with col2:
     nav_button("Get Prediction", "prediction", bg="#28a745")
 
 def prediction_page():
