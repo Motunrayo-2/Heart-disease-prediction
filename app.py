@@ -8,28 +8,6 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import time
 
-# ---------- helper for coloured buttons ----------
-def nav_button(label, target_page, bg="#28a745", icon=""):
-    html = f"""
-    <style>
-    .btn-{target_page} {{
-        background-color: {bg};
-        color: white;
-        border: none;
-        border-radius: 20px;
-        padding: 0.6em 1.2em;
-        font-weight: bold;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: 0.3s;
-    }}
-    .btn-{target_page}:hover {{ filter: brightness(1.1); }}
-    </style>
-    """
-    st.markdown(html, unsafe_allow_html=True)
-    if st.button(f"{icon} {label}", key=f"btn_{target_page}"):
-        st.session_state.page = target_page
-
 # ---------- load assets ----------
 @st.cache_resource
 def load_assets():
@@ -57,7 +35,10 @@ def intro_page():
     st.write("Welcome! This app estimates heart-disease risk from patient metrics.")
     st.image('image.jpeg', use_column_width=True)
     st.markdown("---")
-    nav_button("Start Inputting Features", "input_form", bg="#28a745")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.button("Start Inputting Features", key="intro_next", on_click=lambda: setattr(st.session_state, "page", "input_form"),
+                  type="primary", help="", use_container_width=True)
 
 def input_form_page():
     st.title("Patient's Health Metrics")
@@ -81,9 +62,11 @@ def input_form_page():
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        nav_button("Back to Intro", "intro", bg="#dc3545")
+        st.button("Back to Intro", key="input_back", on_click=lambda: setattr(st.session_state, "page", "intro"),
+                  type="secondary", help="", use_container_width=True)
     with col2:
-        nav_button("Get Prediction", "prediction", bg="#28a745")
+        st.button("Get Prediction", key="input_next", on_click=lambda: setattr(st.session_state, "page", "prediction"),
+                  type="primary", help="", use_container_width=True)
 
 def prediction_page():
     st.title("Prediction Results")
@@ -102,7 +85,6 @@ def prediction_page():
             input_df[num_cols] = scaler.transform(input_df[num_cols])
             st.session_state.input_aligned = input_df
             with st.spinner("Making prediction..."):
-                time.sleep(1)
                 pred = model.predict(input_df.to_numpy())[0][0]
                 st.session_state.prediction = 'Heart Disease' if pred > 0.5 else 'No Heart Disease'
                 st.session_state.prediction_proba = pred * 100
@@ -116,31 +98,33 @@ def prediction_page():
         if st.session_state.prediction == 'Heart Disease'
         else f"The model predicts a **{(100-prob):.1f}%** chance of no heart disease."
     )
-    bar = st.progress(0)
-    for pct in range(0, int(prob) + 1):
-        time.sleep(0.015)
-        bar.progress(pct / 100)
-    st.success("Analysis complete!")
+    st.markdown(f"""
+        <div style="background-color: #e9ecef; border-radius: 20px; height: 30px;">
+            <div style="background-color: {colour}; height: 100%; width: {prob}%; border-radius: 20px;"></div>
+        </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        nav_button("Back to Input", "input_form", bg="#dc3545")
+        st.button("Back to Input", key="pred_back", on_click=lambda: setattr(st.session_state, "page", "input_form"),
+                  type="secondary", help="", use_container_width=True)
     with col2:
-        nav_button("View SHAP Explanation", "shap_explanation", bg="#28a745")
+        st.button("View SHAP Explanation", key="pred_next", on_click=lambda: setattr(st.session_state, "page", "shap_explanation"),
+                  type="primary", help="", use_container_width=True)
 
 def shap_explanation_page():
     st.title("How the Model Made its Prediction")
     st.markdown("---")
     if st.session_state.input_aligned is None or st.session_state.input_aligned.empty:
         st.warning("No patient data available.")
-        nav_button("Back to Prediction", "prediction", bg="#dc3545")
+        st.button("Back to Prediction", on_click=lambda: setattr(st.session_state, "page", "prediction"))
         return
 
     X_row = st.session_state.input_aligned
-    if not st.session_state.explainer:
+    if "explainer" not in st.session_state or st.session_state.explainer is None:
         st.session_state.explainer = shap.KernelExplainer(model.predict, background_data)
-    if not st.session_state.shap_vals:
+    if "shap_vals" not in st.session_state or st.session_state.shap_vals is None:
         st.session_state.shap_vals = st.session_state.explainer.shap_values(X_row)[0].flatten()
 
     shap_vals = st.session_state.shap_vals
@@ -167,14 +151,15 @@ def shap_explanation_page():
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        nav_button("Back to Prediction", "prediction", bg="#dc3545")
+        st.button("Back to Prediction", key="shap_back", on_click=lambda: setattr(st.session_state, "page", "prediction"),
+                  type="secondary", help="", use_container_width=True)
     with col2:
-        nav_button("View Feature Insights", "insights", bg="#28a745")
+        st.button("View Feature Insights", key="shap_next", on_click=lambda: setattr(st.session_state, "page", "insights"),
+                  type="primary", help="", use_container_width=True)
 
 def insights_page():
     st.title("Model Insights and Feature Comparison")
     st.markdown("---")
-
     numeric_cols = [c for c in df.select_dtypes(include=["int64", "float64"]).columns if c != "target"]
     selected_feat = st.sidebar.selectbox("Pick a feature", numeric_cols)
     show_scatter = st.sidebar.checkbox("Compare two features")
@@ -207,7 +192,8 @@ def insights_page():
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        nav_button("🎉 Finish & Start Over", "intro", bg="#28a745")
+        st.button("🎉 Finish & Start Over", key="finish", on_click=lambda: setattr(st.session_state, "page", "intro"),
+                  type="primary", help="", use_container_width=True)
 
 def main():
     page = st.session_state.page
