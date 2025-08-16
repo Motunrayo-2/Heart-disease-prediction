@@ -205,14 +205,15 @@ def insights_page():
     else:
         col2.write("No custom input yet.")
 
-    # ---------- 4️⃣  Navigation ----------
+       # ---------- 4️⃣  Navigation ----------
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        nav_button("Back to SHAP", "shap_explanation", bg="#dc3545")
+        st.button("Back to SHAP", key="ins_back", on_click=lambda: setattr(st.session_state, "page", "shap_explanation"),
+                  type="secondary", use_container_width=True)
     with col2:
-        nav_button("🎉 Finish & Start Over", "intro", bg="#28a745")
-
+        st.button("🎉 Finish & Start Over", key="ins_finish", on_click=lambda: setattr(st.session_state, "page", "intro"),
+                  type="primary", use_container_width=True)
 def main():
     page = st.session_state.page
     if page == 'intro':
