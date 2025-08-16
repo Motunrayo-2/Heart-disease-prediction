@@ -7,26 +7,6 @@ import joblib
 import matplotlib.pyplot as plt
 import plotly.express as px
 import time
-
-# Add this at the very beginning for debugging
-st.write("App is starting...")
-
-# ---------- load assets ----------
-@st.cache_resource
-def load_assets():
-    try:
-        # Add more specific error handling
-        model = tf.keras.models.load_model('MY_ANN_model.h5')
-        st.write("✅ Model loaded")
-        
-        scaler = joblib.load('scaler.joblib')
-        st.write("✅ Scaler loaded")
-        
-        background_data = pd.read_csv('background_data.csv')
-        st.write("✅ Background data loaded")
-        
-        df = pd.read_csv('heart.csv')
-        st.write("✅ Heart data loaded")
         
     except FileNotFoundError as e:
         st.error(f"❌ File not found: {e}")
