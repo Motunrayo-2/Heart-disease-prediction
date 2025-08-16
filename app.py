@@ -240,10 +240,25 @@ def insights_page():
         st.error(f"Error creating plot: {e}")
         st.info("Please check if the selected feature exists in the dataset")
 
-    # ---------- 2️⃣  Scatter comparison ----------
+    # ---------- 2️⃣  Scatter plots ----------
     if show_scatter and second_feat:
+        # Two-feature scatter plot
         st.subheader(f"Scatter: {selected_feat} vs {second_feat}")
-        fig2 = px.scatter(df, x=selected_feat, y=second_feat, color="target")
+        fig2 = px.scatter(df, x=selected_feat, y=second_feat, color="target",
+                         labels={"target": "Heart Disease"},
+                         title=f"{selected_feat} vs {second_feat} by Heart Disease Status")
+        fig2.update_layout(legend=dict(title="Heart Disease", labels=["No", "Yes"]))
+        st.plotly_chart(fig2, use_container_width=True)
+    else:
+        # Single feature scatter plot (feature vs index or another default)
+        st.subheader(f"Scatter Plot: {selected_feat} Distribution")
+        # Create a scatter plot with row index on x-axis to show distribution
+        df_plot = df.copy()
+        df_plot['index'] = range(len(df_plot))
+        fig2 = px.scatter(df_plot, x='index', y=selected_feat, color="target",
+                         labels={"target": "Heart Disease", "index": "Patient Index"},
+                         title=f"{selected_feat} Distribution Across Patients")
+        fig2.update_layout(legend=dict(title="Heart Disease", labels=["No", "Yes"]))
         st.plotly_chart(fig2, use_container_width=True)
 
     # ---------- 3️⃣  Downloads ----------
