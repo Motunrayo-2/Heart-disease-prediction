@@ -68,50 +68,66 @@ def input_form_page():
         st.button("Get Prediction", key="input_next", on_click=lambda: setattr(st.session_state, "page", "prediction"),
                   type="primary", help="", use_container_width=True)
 
-def prediction_page():
-    st.title("Prediction Results")
+def shap_explanation_page():
+    st.title("How the Model Made its Prediction")
     st.markdown("---")
-    if st.session_state.prediction is None:
-        user_input = st.session_state.user_input
-        if user_input:
-            input_df = pd.DataFrame([user_input])
-            input_df['sex'] = input_df['sex'].map({"Male": 1, "Female": 0})
-            input_df['fbs'] = input_df['fbs'].map({"Yes": 1, "No": 0})
-            input_df['exang'] = input_df['exang'].map({"Yes": 1, "No": 0})
-            cat_cols = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal']
-            input_df = pd.get_dummies(input_df, columns=cat_cols, drop_first=True)
-            input_df = input_df.reindex(columns=background_data.columns, fill_value=0)
-            num_cols = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak', 'ca']
-            input_df[num_cols] = scaler.transform(input_df[num_cols])
-            st.session_state.input_aligned = input_df
-            with st.spinner("Making prediction..."):
-                pred = model.predict(input_df.to_numpy())[0][0]
-                st.session_state.prediction = 'Heart Disease' if pred > 0.5 else 'No Heart Disease'
-                st.session_state.prediction_proba = pred * 100
 
-    prob = st.session_state.prediction_proba
-    st.subheader(f"Prediction: {st.session_state.prediction}")
-    colour = "#e74c3c" if st.session_state.prediction == 'Heart Disease' else "#28a745"
-    st.markdown("### Risk Level")
-    st.write(
-        f"The model predicts a **{prob:.1f}%** risk of heart disease."
-        if st.session_state.prediction == 'Heart Disease'
-        else f"The model predicts a **{(100-prob):.1f}%** chance of no heart disease."
+    # ------------- Plain-English guide -------------
+    st.markdown("""
+    **How to read the chart below:**
+
+    - Each bar = **one feature you entered** (Age, Cholesterol, etc.).  
+    - **Red bars** push the model **toward** predicting heart disease.  
+    - **Blue bars** push the model **away** from predicting heart disease.  
+    - **Length** of the bar = how strongly that feature influenced the final risk.  
+    - The **table underneath** shows exact numbers (feature value, SHAP score, % contribution).
+    """)
+
+    # ------------- SHAP computation -------------
+    if st.session_state.input_aligned is None or st.session_state.input_aligned.empty:
+        st.warning("No patient data available. Please go back and enter features.")
+        st.button("Back to Prediction", key="shap_err_back", on_click=lambda: setattr(st.session_state, "page", "prediction"))
+        return
+
+    X_row = st.session_state.input_aligned
+    if "explainer" not in st.session_state or st.session_state.explainer is None:
+        st.session_state.explainer = shap.KernelExplainer(model.predict, background_data)
+    if "shap_vals" not in st.session_state or st.session_state.shap_vals is None:
+        st.session_state.shap_vals = st.session_state.explainer.shap_values(X_row)[0].flatten()
+
+    shap_vals = st.session_state.shap_vals
+
+    # ------------- Bar chart -------------
+    shap_df = pd.DataFrame({"feature": X_row.columns, "value": X_row.iloc[0], "shap": shap_vals})
+    shap_df["abs_shap"] = shap_df["shap"].abs()
+    shap_df = shap_df.sort_values("abs_shap")
+
+    fig, ax = plt.subplots(figsize=(5, max(4, len(shap_df) * 0.3)))
+    colors = ["#3498db" if s < 0 else "#e74c3c" for s in shap_df["shap"]]
+    ax.barh(shap_df["feature"], shap_df["shap"], color=colors)
+    ax.set_xlabel("SHAP value (impact on prediction)")
+    ax.axvline(0, color="black")
+    plt.tight_layout()
+    st.pyplot(fig)
+
+    # ------------- Contribution table -------------
+    total = shap_df["abs_shap"].sum()
+    shap_df["contrib_pct"] = shap_df["abs_shap"] / total * 100
+    st.dataframe(
+        shap_df[["feature", "value", "shap", "contrib_pct"]]
+        .sort_values("contrib_pct", ascending=False)
+        .style.format({"value": "{:.2f}", "shap": "{:.3f}", "contrib_pct": "{:.1f}%"})
     )
-    st.markdown(f"""
-        <div style="background-color: #e9ecef; border-radius: 20px; height: 30px;">
-            <div style="background-color: {colour}; height: 100%; width: {prob}%; border-radius: 20px;"></div>
-        </div>
-    """, unsafe_allow_html=True)
 
+    # ------------- Navigation -------------
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        st.button("Back to Input", key="pred_back", on_click=lambda: setattr(st.session_state, "page", "input_form"),
-                  type="secondary", help="", use_container_width=True)
+        st.button("Back to Prediction", key="shap_back", on_click=lambda: setattr(st.session_state, "page", "shap_explanation"),
+                  type="secondary", use_container_width=True)
     with col2:
-        st.button("View SHAP Explanation", key="pred_next", on_click=lambda: setattr(st.session_state, "page", "shap_explanation"),
-                  type="primary", help="", use_container_width=True)
+        st.button("View Feature Insights", key="shap_next", on_click=lambda: setattr(st.session_state, "page", "insights"),
+                  type="primary", use_container_width=True)
 
 def shap_explanation_page():
     st.title("How the Model Made its Prediction")
