@@ -1,5 +1,3 @@
-import sys, traceback
-sys.excepthook = lambda *args: traceback.print_exception(*args, file=sys.stderr)
 import streamlit as st
 import pandas as pd
 import numpy as np
