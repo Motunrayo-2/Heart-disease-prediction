@@ -238,8 +238,8 @@ def insights_page():
                                labels={"target": "Heart Disease", selected_feat: selected_feat},
                                title=f"Violin Plot: {selected_feat} by Heart Disease Status")
             
-            # Update layout for better readability
-            fig.update_xaxis(tickvals=[0, 1], ticktext=["No Heart Disease", "Heart Disease"])
+            # Update layout for better readability (FIXED: update_xaxes not update_xaxis)
+            fig.update_xaxes(tickvals=[0, 1], ticktext=["No Heart Disease", "Heart Disease"])
             st.plotly_chart(fig, use_container_width=True)
             
         except Exception as e:
