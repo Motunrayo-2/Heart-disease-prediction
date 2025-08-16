@@ -213,11 +213,11 @@ prob = st.session_state.prediction_proba
 bar_colour = "#e74c3c" if st.session_state.prediction == 'Heart Disease' else "#28a745"
 
 st.markdown("### Risk Level")
-st.write(
-    f"The model predicts a **{prob:.1f}%** risk of heart disease."
-    if st.session_state.prediction == 'Heart Disease'
-    else f"The model predicts a **{(100-prob):.1f}%** chance of no heart disease."
-)
+  st.write(
+        f"The model predicts a **{prob:.1f}%** risk of heart disease."
+        if st.session_state.prediction == 'Heart Disease'
+        else f"The model predicts a **{(100-prob):.1f}%** chance of no heart disease."
+    )
 
 progress_bar = st.progress(0)
 for pct in range(0, int(prob) + 1):
