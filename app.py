@@ -88,7 +88,6 @@ def input_form_page():
 def prediction_page():
     st.title("Prediction Results")
     st.markdown("---")
-
     if st.session_state.prediction is None:
         user_input = st.session_state.user_input
         if user_input:
@@ -96,15 +95,12 @@ def prediction_page():
             input_df['sex'] = input_df['sex'].map({"Male": 1, "Female": 0})
             input_df['fbs'] = input_df['fbs'].map({"Yes": 1, "No": 0})
             input_df['exang'] = input_df['exang'].map({"Yes": 1, "No": 0})
-
             cat_cols = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal']
             input_df = pd.get_dummies(input_df, columns=cat_cols, drop_first=True)
             input_df = input_df.reindex(columns=background_data.columns, fill_value=0)
-
             num_cols = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak', 'ca']
             input_df[num_cols] = scaler.transform(input_df[num_cols])
             st.session_state.input_aligned = input_df
-
             with st.spinner("Making prediction..."):
                 time.sleep(1)
                 pred = model.predict(input_df.to_numpy())[0][0]
@@ -114,14 +110,12 @@ def prediction_page():
     prob = st.session_state.prediction_proba
     st.subheader(f"Prediction: {st.session_state.prediction}")
     colour = "#e74c3c" if st.session_state.prediction == 'Heart Disease' else "#28a745"
-
     st.markdown("### Risk Level")
     st.write(
         f"The model predicts a **{prob:.1f}%** risk of heart disease."
         if st.session_state.prediction == 'Heart Disease'
         else f"The model predicts a **{(100-prob):.1f}%** chance of no heart disease."
     )
-
     bar = st.progress(0)
     for pct in range(0, int(prob) + 1):
         time.sleep(0.015)
@@ -208,9 +202,7 @@ def insights_page():
 
     st.subheader("Correlation heat-map")
     corr = df[numeric_cols + ["target"]].corr()
-    px.imshow(corr, text_auto=".2f", color_continuous_scale="RdBu_r").update_layout(
-        use_container_width=True
-    )
+    st.plotly_chart(px.imshow(corr, text_auto=".2f", color_continuous_scale="RdBu_r"), use_container_width=True)
 
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -218,7 +210,6 @@ def insights_page():
         nav_button("🎉 Finish & Start Over", "intro", bg="#28a745")
 
 def main():
-    custom_css()
     page = st.session_state.page
     if page == 'intro':
         intro_page()
