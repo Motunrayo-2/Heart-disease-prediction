@@ -226,7 +226,7 @@ for pct in range(0, int(prob) + 1):
 
 st.success("Analysis complete!")
     
-    st.markdown("---")
+st.markdown("---")
  col1, col2 = st.columns(2)
 with col1:
     nav_button("Back to Input", "input_form", bg="#dc3545")
