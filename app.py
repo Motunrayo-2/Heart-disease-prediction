@@ -40,7 +40,7 @@ model, scaler, background_data, df = load_assets()
 def intro_page():
     st.title("Cardiovascular Health: Heart Disease Risk Prediction")
     st.markdown("---")
-    st.write("Welcome! This app estimates heart-disease risk from patient metrics.")
+    st.write("Welcome! This app estimates Coronary Artery-disease risk from patient metrics.")
     
     # Make image optional
     try:
@@ -109,18 +109,18 @@ def prediction_page():
         st.session_state.input_aligned = input_df
 
         pred = model.predict(input_df.to_numpy())[0][0]
-        st.session_state.prediction = 'Heart Disease' if pred > 0.5 else 'No Heart Disease'
+        st.session_state.prediction = 'Heart Disease' if pred > 0.5 else 'No Coronary Artery Disease'
         st.session_state.prediction_proba = pred * 100
 
     # ---- display ----
     prob = st.session_state.prediction_proba
-    colour = "#e74c3c" if st.session_state.prediction == 'Heart Disease' else "#28a745"
+    colour = "#e74c3c" if st.session_state.prediction == 'Coronary Artery Disease' else "#28a745"
     st.subheader(f"Prediction: {st.session_state.prediction}")
     st.markdown("### Risk Level")
     st.write(
-        f"The model predicts a **{prob:.1f}%** risk of heart disease."
-        if st.session_state.prediction == 'Heart Disease'
-        else f"The model predicts a **{(100-prob):.1f}%** chance of no heart disease."
+        f"The model predicts a **{prob:.1f}%** risk of Coronary Artery disease."
+        if st.session_state.prediction == 'Coronary Artery Disease'
+        else f"The model predicts a **{(100-prob):.1f}%** chance of no Coronary Artery disease."
     )
     st.markdown(f"""
         <div style="background-color: #e9ecef; border-radius: 20px; height: 30px;">
@@ -146,8 +146,8 @@ def shap_explanation_page():
     **How to read the chart below:**
 
     - Each bar = **one feature you entered** (Age, Cholesterol, etc.).  
-    - **Red bars** push the model **toward** predicting heart disease.  
-    - **Blue bars** push the model **away** from predicting heart disease.  
+    - **Red bars** push the model **toward** predicting Coronary Artery disease.  
+    - **Blue bars** push the model **away** from predicting Coronary Artery disease.  
     - **Length** of the bar = how strongly that feature influenced the final risk.  
     - The **table underneath** shows exact numbers (feature value, SHAP score, % contribution).
     """)
