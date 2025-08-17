@@ -72,6 +72,14 @@ def input_form_page():
         'ca': st.number_input("Number of Major Vessels (0-3)", 0, 3, 0),
         'thal': st.selectbox("Thalassemia", [0, 1, 2]),
     }
+    
+    # Check if input has changed and reset prediction if so
+    if st.session_state.user_input != user_input:
+        st.session_state.prediction = None
+        st.session_state.prediction_proba = None
+        st.session_state.input_aligned = None
+        st.session_state.shap_vals = None
+    
     st.session_state.user_input = user_input
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -118,12 +126,12 @@ def prediction_page():
     st.subheader(f"Prediction: {st.session_state.prediction}")
     st.markdown("### Risk Level")
     
-    # Fix the probability bar logic
+    # Fix the risk message logic
     if st.session_state.prediction == 'Coronary Artery Disease':
         st.write(f"The model predicts a **{prob:.1f}%** risk of coronary artery disease.")
         progress_width = prob
     else:
-        st.write(f"The model predicts a **{(100-prob):.1f}%** chance of no coronary artery disease.")
+        st.write(f"The model predicts a **{prob:.1f}%** risk of coronary artery disease, meaning **{(100-prob):.1f}%** chance of no coronary artery disease.")
         progress_width = 100 - prob
     
     st.markdown(f"""
