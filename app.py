@@ -38,9 +38,9 @@ model, scaler, background_data, df = load_assets()
 
 # ---------- page functions ----------
 def intro_page():
-    st.title("Cardiovascular Health: Heart Disease Risk Prediction")
+    st.title("Cardiovascular Health: Coronary Artery Disease Risk Prediction")
     st.markdown("---")
-    st.write("Welcome! This app estimates Coronary Artery-disease risk from patient metrics.")
+    st.write("Welcome! This app estimates coronary artery disease risk from patient metrics.")
     
     # Make image optional
     try:
@@ -109,7 +109,7 @@ def prediction_page():
         st.session_state.input_aligned = input_df
 
         pred = model.predict(input_df.to_numpy())[0][0]
-        st.session_state.prediction = 'Heart Disease' if pred > 0.5 else 'No Coronary Artery Disease'
+        st.session_state.prediction = 'Coronary Artery Disease' if pred > 0.5 else 'No Coronary Artery Disease'
         st.session_state.prediction_proba = pred * 100
 
     # ---- display ----
@@ -117,14 +117,18 @@ def prediction_page():
     colour = "#e74c3c" if st.session_state.prediction == 'Coronary Artery Disease' else "#28a745"
     st.subheader(f"Prediction: {st.session_state.prediction}")
     st.markdown("### Risk Level")
-    st.write(
-        f"The model predicts a **{prob:.1f}%** risk of Coronary Artery disease."
-        if st.session_state.prediction == 'Coronary Artery Disease'
-        else f"The model predicts a **{(100-prob):.1f}%** chance of no Coronary Artery disease."
-    )
+    
+    # Fix the probability bar logic
+    if st.session_state.prediction == 'Coronary Artery Disease':
+        st.write(f"The model predicts a **{prob:.1f}%** risk of coronary artery disease.")
+        progress_width = prob
+    else:
+        st.write(f"The model predicts a **{(100-prob):.1f}%** chance of no coronary artery disease.")
+        progress_width = 100 - prob
+    
     st.markdown(f"""
         <div style="background-color: #e9ecef; border-radius: 20px; height: 30px;">
-            <div style="background-color: {colour}; height: 100%; width: {prob}%; border-radius: 20px;"></div>
+            <div style="background-color: {colour}; height: 100%; width: {progress_width}%; border-radius: 20px;"></div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -146,8 +150,8 @@ def shap_explanation_page():
     **How to read the chart below:**
 
     - Each bar = **one feature you entered** (Age, Cholesterol, etc.).  
-    - **Red bars** push the model **toward** predicting Coronary Artery disease.  
-    - **Blue bars** push the model **away** from predicting Coronary Artery disease.  
+    - **Red bars** push the model **toward** predicting coronary artery disease.  
+    - **Blue bars** push the model **away** from predicting coronary artery disease.  
     - **Length** of the bar = how strongly that feature influenced the final risk.  
     - The **table underneath** shows exact numbers (feature value, SHAP score, % contribution).
     """)
@@ -219,7 +223,7 @@ def insights_page():
             second_feat = st.sidebar.selectbox("Second feature", [c for c in numeric_cols if c != selected_feat])
 
         # ---------- 1️⃣  Univariate ----------
-        st.subheader(f"Distribution of '{selected_feat}' by Heart Disease")
+        st.subheader(f"Distribution of '{selected_feat}' by Coronary Artery Disease")
         plot_type = st.radio("Plot style", ["box", "violin"], horizontal=True)
         
         # Make sure target column exists and create a proper plot
@@ -231,15 +235,15 @@ def insights_page():
             # Create the plot based on selection
             if plot_type == "box":
                 fig = px.box(df, x="target", y=selected_feat, color="target", 
-                            labels={"target": "Heart Disease", selected_feat: selected_feat},
-                            title=f"Box Plot: {selected_feat} by Heart Disease Status")
+                            labels={"target": "Coronary Artery Disease", selected_feat: selected_feat},
+                            title=f"Box Plot: {selected_feat} by Coronary Artery Disease Status")
             else:
                 fig = px.violin(df, x="target", y=selected_feat, color="target", box=True,
-                               labels={"target": "Heart Disease", selected_feat: selected_feat},
-                               title=f"Violin Plot: {selected_feat} by Heart Disease Status")
+                               labels={"target": "Coronary Artery Disease", selected_feat: selected_feat},
+                               title=f"Violin Plot: {selected_feat} by Coronary Artery Disease Status")
             
             # Update layout for better readability (FIXED: update_xaxes not update_xaxis)
-            fig.update_xaxes(tickvals=[0, 1], ticktext=["No Heart Disease", "Heart Disease"])
+            fig.update_xaxes(tickvals=[0, 1], ticktext=["No Coronary Artery Disease", "Coronary Artery Disease"])
             st.plotly_chart(fig, use_container_width=True)
             
         except Exception as e:
@@ -254,9 +258,9 @@ def insights_page():
                 # Two-feature scatter plot
                 st.subheader(f"Scatter: {selected_feat} vs {second_feat}")
                 fig2 = px.scatter(df, x=selected_feat, y=second_feat, color="target",
-                                 labels={"target": "Heart Disease"},
-                                 title=f"{selected_feat} vs {second_feat} by Heart Disease Status")
-                fig2.update_layout(legend=dict(title="Heart Disease"))
+                                 labels={"target": "Coronary Artery Disease"},
+                                 title=f"{selected_feat} vs {second_feat} by Coronary Artery Disease Status")
+                fig2.update_layout(legend=dict(title="Coronary Artery Disease"))
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 # Single feature scatter plot (feature vs index or another default)
@@ -265,9 +269,9 @@ def insights_page():
                 df_plot = df.copy()
                 df_plot['index'] = range(len(df_plot))
                 fig2 = px.scatter(df_plot, x='index', y=selected_feat, color="target",
-                                 labels={"target": "Heart Disease", "index": "Patient Index"},
+                                 labels={"target": "Coronary Artery Disease", "index": "Patient Index"},
                                  title=f"{selected_feat} Distribution Across Patients")
-                fig2.update_layout(legend=dict(title="Heart Disease"))
+                fig2.update_layout(legend=dict(title="Coronary Artery Disease"))
                 st.plotly_chart(fig2, use_container_width=True)
         except Exception as e:
             st.error(f"Error creating scatter plot: {e}")
@@ -289,7 +293,7 @@ def insights_page():
         col1.download_button(
             "📊 Download Training Dataset", 
             training_data_csv,
-            file_name="heart_disease_training_data.csv", 
+            file_name="coronary_artery_disease_training_data.csv", 
             mime="text/csv",
             help="Download the public dataset used to train this model"
         )
